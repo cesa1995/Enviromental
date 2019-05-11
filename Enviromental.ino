@@ -48,7 +48,7 @@ TinyGsm modem(SerialGsm);
 TinyGsmClient GsmClient(modem);
 
 //----------WIFI-----------------
-const char* APssid = "7-COCO2NH4";
+const char* APssid = "9-COCO2NH4";
 const char* APpassword =  "12345678";
 
 char STAssid[50];
@@ -66,9 +66,9 @@ StaticJsonDocument<CAPACITYobj> objeto;
 PubSubClient mqttGSM(GsmClient);
 PubSubClient mqttWIFI(WifiClient);
 char broker[] = "demo.thingsboard.io";
-#define TOKEN "fVo547kfUrRsMA5KQ31w"
+#define TOKEN "chW5YCF2eXJjqeTSquvC"
 #define FIRMWARE "0.1"
-#define NUMERO_SERIAL  "SN-007"
+#define NUMERO_SERIAL  "SN-009"
 
 //-----------Reset Variables------
 static RTC_NOINIT_ATTR int Mode; //0-AP, 1-STA, 2-GSM
@@ -76,32 +76,42 @@ esp_reset_reason_t reason;
 
 #include "Connections.h"
 #include "DATA.h"
+
+//------------Error del equipo-----
+String mensaje;
+
 void setup() {
   //Iniciar Puerto Serial
   Serial.begin(115200);
+  //------------------SIM800L-----------
+  delay(10);
+  rtc_gpio_init(RST);
+  rtc_gpio_set_direction(RST,RTC_GPIO_MODE_OUTPUT_ONLY);
+  rtc_gpio_set_level(RST,0);
+  delay(1000);
   //------------MicroSD-------------
   sdCard.begin(5,17,18,19);
   if(!SD.begin(SD_CS,sdCard,SDSPEED)){
       Serial.println(" ");
       Serial.println("Card Mount Failed");
       Serial.println(" ");
-      while(true);
+      mensaje="Card Mount Failed";
+      Error();
   }else{
     Serial.println(" ");
     Serial.println("Card Mount Success");
     Serial.println(" ");
+    rtc_gpio_set_level(RST,1);
+    delay(1000);
   }
-  
-  //------------------SIM800L-----------
-  delay(10);
-  rtc_gpio_init(RST);
-  rtc_gpio_set_direction(RST,RTC_GPIO_MODE_OUTPUT_ONLY);
 
   //----------Chose WIFI AND MQTT Connection (GSM-WIFI)-----------------
   reason=esp_reset_reason();
   delay(100);
   if((reason != ESP_RST_DEEPSLEEP) && (reason != ESP_RST_SW)){
-    Mode=2;
+    if(Mode!=3){
+      Mode=2;
+    }
   }
   if(Mode==1){
     staSettings();
@@ -148,6 +158,9 @@ void loop() {
       esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON); 
       esp_sleep_enable_timer_wakeup(120*1000*1000);
       esp_deep_sleep_start();
+    }break;
+    case 3:{
+      errorFunction();
     }break;
   }
 }

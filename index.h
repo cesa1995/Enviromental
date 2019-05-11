@@ -64,7 +64,7 @@ form input[type="submit"]:focus {
         <h1>Configurar Wifi ESP32</h1>
         <form action="" method="post">
             <input type="text" name="SSID" placeholder="SSID" autofocus required>
-            <input type="text" name="PASSWORD" placeholder="PASS" required>
+            <input type="text" name="PASSWORD" placeholder="PASS">
             <input type="submit" value="GUARDAR">
         </form>
     </div>

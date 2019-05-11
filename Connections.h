@@ -54,7 +54,10 @@ String printLocalTime(){
 }
 
 void apSettings(){
-    Mode=0;
+    if(Mode!=3){
+      Mode=0;
+    }
+    Serial.println(Mode);
     WiFi.disconnect();
     Serial.println("Configuring access point...");
     // You can remove the password parameter if you want the AP to be open.
@@ -98,7 +101,7 @@ void staSettings(){
           delay(500);
           Serial.print(".");
           trys++;
-        }while(WiFi.status() != WL_CONNECTED && trys<=25);
+        }while(WiFi.status() != WL_CONNECTED && trys<=10);
         trys=0;
         i++;
       }
@@ -123,25 +126,30 @@ void gsmSettings(){
   Mode=2;
   TinyGsmAutoBaud(SerialGsm);
   delay(100);
-  Serial.println("Initializing modem...");
-  modem.restart();
-  String modemInfo = modem.getModemInfo();
-  Serial.print("Modem: ");
-  Serial.println(modemInfo);
-  Serial.print("Waiting for network...");
-  if (modem.waitForNetwork()) {
-    Serial.println(" OK");
-    do{
-      Serial.print("Connecting to ");
-      Serial.print(apn);
-      modem.gprsConnect(apn,user,pass);
-    }while(!modem.isGprsConnected());
-    Serial.println(" OK");
+  if(modem.getSimStatus()==1){
     WiFi.mode( WIFI_MODE_NULL );
-    delay(500);
-    Serial.println("Getting date...");
-    Serial.println(modem.getGSMDateTime(DATE_FULL));
-    mqttChoose(mqttGSM);
+    Serial.println("Initializing modem...");
+    modem.restart();
+    String modemInfo = modem.getModemInfo();
+    Serial.print("Modem: ");
+    Serial.println(modemInfo);
+    Serial.print("Waiting for network...");
+    modem.waitForNetwork();
+    Serial.println(" OK");
+    Serial.print("Connecting to ");
+    Serial.print(apn);
+    modem.gprsConnect(apn,user,pass);
+    if (modem.isGprsConnected()) {
+      Serial.println(" OK");
+      delay(500);
+      Serial.println("Getting date...");
+      Serial.println(modem.getGSMDateTime(DATE_FULL));
+      mqttChoose(mqttGSM);
+    }else{
+      Serial.println(" fail");
+      //rtc_gpio_set_level(RST,0);
+      //staSettings();
+    }
   }else{
     Serial.println(" fail");
     rtc_gpio_set_level(RST,0);
