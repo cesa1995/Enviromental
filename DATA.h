@@ -1,4 +1,4 @@
-void makeData(float Temperatura,float Humedad,float Presion,float Altitud,float CO,float CH4,float CO2, PubSubClient mqtt){
+void SendData(PubSubClient mqtt){
   char attributes[100];
   String Mensaje="{";
   Mensaje+="\"Temperatura\":"; Mensaje+=Temperatura; Mensaje+=",";
@@ -31,12 +31,23 @@ void makeData(float Temperatura,float Humedad,float Presion,float Altitud,float 
   delay(1000);
 }
 
-void SendData(PubSubClient mqtt){
-  //------------Leer Sensores----------
-  float Temperatura, Humedad, Presion, Altitud, CO, CH4, CO2;
-  int16_t mq9, mq4, mq135, none;// COB, CH4B, CO2B;
-  int leer=10;
+void SaveData(){
+  //------------Save Data-----------
+  String datos=getTiempo()+"  "+String(Temperatura)+"  "+String(Humedad)+" "+String(Presion)+" "+String(Altitud)+" "+String(CO)+"  "+String(CH4)+" "+String(CO2)+"\n";
+  int sizeStr=datos.length()+1;
+  char toSave[sizeStr];
+  datos.toCharArray(toSave, sizeStr);
+  
+  if(SD.exists(Log)){
+    appendFile(SD, Log, toSave);
+  }else{
+    writeFile(SD, Log, "Fecha  Hora  Temperatura(°C)  Humedad(%) Presion(hPa) Altitud(m) CO/MQ9(V)  NH4/MQ4(V) CO2/MQ135(V)\n");
+    appendFile(SD, Log, toSave);
+  }
+}
 
+void MakeData(){
+  //------------Leer Sensores----------  
   //Lectura BME
   Temperatura+=bme.readTemperature();
   Humedad+=bme.readHumidity();
@@ -65,31 +76,6 @@ void SendData(PubSubClient mqtt){
   CO=CO/leer;
   CO2=CO2/leer;
   CH4=CH4/leer;
-
-  //------------Save Data-----------
-  String dateTime;
-  switch(Mode){
-    case 1:{
-      dateTime=printLocalTime();
-      Serial.println(dateTime);
-    }break;
-    case 2:{
-      dateTime= modem.getGSMDateTime(DATE_FULL);   
-    }break;
-  }
-  String Date=dateTime.substring(0,8);
-  String Time=dateTime.substring(9,17);
-  String datos=Date+" "+Time+"  "+String(Temperatura)+"  "+String(Humedad)+" "+String(Presion)+" "+String(Altitud)+" "+String(CO)+"  "+String(CH4)+" "+String(CO2)+"\n";
-  int sizeStr=datos.length()+1;
-  char toSave[sizeStr];
-  datos.toCharArray(toSave, sizeStr);
-  
-  if(SD.exists("/Log.txt")){
-    appendFile(SD, "/Log.txt", toSave);
-  }else{
-    writeFile(SD, "/Log.txt", "Fecha  Hora  Temperatura(°C)  Humedad(%) Presion(hPa) Altitud(m) CO/MQ9(V)  NH4/MQ4(V) CO2/MQ135(V)\n");
-    appendFile(SD, "/Log.txt", toSave);
-  }
   
   //------------Mostrar Datos en el Serial-----
   Serial.println("Temperatura I Humedad I Presion I Altitud I MQ9    I MQ4     I MQ135  ");
@@ -108,20 +94,4 @@ void SendData(PubSubClient mqtt){
   Serial.print("       ");
   Serial.print(CO2);
   Serial.println("");
-
-  //------------Enviar Data----------------
-  //Enviar datos del BME
-  if(!mqtt.connected()){
-    Serial.print("Broker connecting...");
-    if(!mqttConnect(mqtt)){
-      Serial.println("Fail");    
-    }else{
-      Serial.println("OK");
-      delay(300);
-      makeData(Temperatura, Humedad, Presion, Altitud, CO, CH4, CO2, mqtt);
-    }
-  }else{
-    makeData(Temperatura, Humedad, Presion, Altitud, CO, CH4, CO2, mqtt);
-  }
 }
-

@@ -1,130 +1,87 @@
-boolean mqttConnect(PubSubClient mqtt) {
-  Serial.print("Connecting to ");
-  Serial.print(broker);
-
-  // Connect to MQTT Broker
-  //boolean status = mqtt.connect("GsmClientTest");
-
-  // Or, if you want to authenticate MQTT:
-  boolean status = mqtt.connect("Nodemcu_estacion", TOKEN, NULL);
-
-  if (status == false) {
-    Serial.println(" fail");
-    return false;
-  }
-  Serial.println(" OK");
-  
-  String payload = "{";
-  payload += "\"firmware\":"; payload += FIRMWARE; payload += ",";
-  payload += "\"Numero Serial\":"; payload += NUMERO_SERIAL;
-  payload += "}";
-
-  // Send payload
-  char attributes[100];
-  payload.toCharArray( attributes, 100 );
-  mqtt.publish( "v1/devices/me/attributes", attributes );
-  Serial.println( attributes );
-  delay(300); 
-  return mqtt.connected();
-}
-
-void mqttChoose(PubSubClient mqtt){
-  delay(200);
-  mqtt.setServer(broker, 1883);
-  if (!mqtt.connected()) {
-    boolean status=mqttConnect(mqtt);
-    if(!status){
-      Serial.println("No conectado al servidor MQTT");
-    }
-  }
-}
-
-String printLocalTime(){
-  time_t rawtime;
-  struct tm timeinfo;
-  if(!getLocalTime(&timeinfo)){
-    Serial.println("Failed to obtain time");
-  }
-  char timeStringBuff[50]; //50 chars should be enough
-  strftime(timeStringBuff, sizeof(timeStringBuff), "%m/%d/%y %H:%M:%S", &timeinfo);
-  //print like "const char*"
-  //Optional: Construct String object 
-  String asString(timeStringBuff);
-  return asString;
-}
-
 void apSettings(){
-    if(Mode!=3){
-      Mode=0;
-    }
-    Serial.println(Mode);
+  WiFi.disconnect();
+  WiFi.mode(WIFI_AP);
+  Serial.println("Configuring access point...");
+  WiFi.softAP(AP.ssid, AP.pass);
+  delay(500);
+  WiFi.softAPConfig(local_ip, gateway, subnet);
+  delay(100);
+
+  server.on("/", principal);
+  server.on("/apn", apn);
+  server.on("/sta", sta);
+  server.on("/ap", ap);
+  server.on("/log", errores);
+  server.on("/save", save);
+  server.on("/reloj", reloj);
+  server.on("/borrar", borrar);
+  server.on("/reboot", reboot);
+  server.onNotFound(handle_NotFound);
+  
+  server.begin();
+  Serial.println("HTTP server started");
+}
+
+boolean staSettings(){
+  boolean readyS=true;
+  if(SD.exists(configuracion)){
+    int trys=0;
     WiFi.disconnect();
-    Serial.println("Configuring access point...");
-    // You can remove the password parameter if you want the AP to be open.
-    WiFi.softAP(APssid, APpassword);
-    IPAddress myIP = WiFi.softAPIP();
-    Serial.print("AP IP address: ");
-    Serial.println(myIP);
-    serverHtml.begin();
-    Serial.println("HTTP server started");
-    Serial.println("Server started");
-}
-
-void staSettings(){
-    Mode=1;
-    if(SD.exists("/config.txt")){
-      int trys=0;
-      String datos=readFile(SD, "/config.txt");
-      char json[500];
-      datos.toCharArray(json, 500);
-      DeserializationError error = deserializeJson(areglo, json);
-      if (error) {
-        Serial.print(F("deserializeJson() failed: "));
-        Serial.println(error.c_str());
-        apSettings();
-      }
-      int WifiSaved=areglo.size();
-      
-      WiFi.softAPdisconnect(true);
-      WiFi.disconnect();
-      int i=0;
-      while (i<WifiSaved && WiFi.status() != WL_CONNECTED){
-        String ssid=areglo[i]["ssid"];
-        String password=areglo[i]["pass"];
-        ssid.toCharArray(STAssid, 50);
-        password.toCharArray(STApassword, 50);
+    WiFi.mode(WIFI_STA);
+    Serial.print("Connecting to ");
+    Serial.println(STA.ssid);
+    WiFi.begin(STA.ssid, STA.pass);
+    do{
+      delay(500);
+      Serial.print(".");
+      trys++;
+    }while(WiFi.status() != WL_CONNECTED && trys<=10);
         
-        Serial.print("Connecting to ");
-        Serial.println(STAssid);
-        WiFi.begin(STAssid, STApassword);
-        do{
-          delay(500);
-          Serial.print(".");
-          trys++;
-        }while(WiFi.status() != WL_CONNECTED && trys<=10);
-        trys=0;
-        i++;
-      }
-      if(WiFi.status() != WL_CONNECTED){
-        apSettings();
-      }else{
-        Serial.println("");
-        Serial.println("WiFi connected");
-        Serial.println("IP address: ");
-        Serial.println(WiFi.localIP());
-        configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-        mqttChoose(mqttWIFI);
-      }
+    if(WiFi.status() != WL_CONNECTED){
+      error+="Error conectar al punto de acceso-";
+      Mode=0;
+      readyS=false;
     }else{
-      apSettings();
-    }
+      Serial.println("");
+      Serial.println("WiFi connected");
+      Serial.println("IP address: ");
+      Serial.println(WiFi.localIP());
+      configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+      delay(100);
+      int cargar=0;
+      while(!saveWifiTime() && cargar<5){
+        cargar++;
+        Serial.print(".");
+        delay(200);
+      }
+      if(cargar>4){
+        Serial.println("Failed to obtain time");
+        error+="Error obtener hora Wifi-";
+        Mode=0;
+        readyS=false;
+      }else if(!mqttChoose(mqttWIFI)){
+        Mode=0;  
+        APB=0;
+      }
+     }
+  }else{
+    error+="No existe el archivo de Configuracion-";
+    Mode=0;
+    readyS=false;
+  }
+  return readyS;
 }
 
-void gsmSettings(){
+boolean gsmSettings(){
+  boolean readyC=true;
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_OFF);
   rtc_gpio_set_level(RST,1);
   delay(100);
-  Mode=2;
-  TinyGsmAutoBaud(SerialGsm);
+  if(!TinyGsmAutoBaud(SerialGsm)){
+    error+="Modulo Gsm no encendido-";
+    readyC=false;
+  }
   delay(100);
   if(modem.getSimStatus()==1){
     WiFi.mode( WIFI_MODE_NULL );
@@ -137,141 +94,85 @@ void gsmSettings(){
     modem.waitForNetwork();
     Serial.println(" OK");
     Serial.print("Connecting to ");
-    Serial.print(apn);
-    modem.gprsConnect(apn,user,pass);
+    Serial.print(sim.apn);
+    int cargar=0;
+    while(!modem.isGprsConnected() && cargar<10){
+      modem.gprsConnect(sim.apn,sim.user,sim.pass);
+      cargar++;
+      Serial.print(".");
+      delay(2000);
+    }
     if (modem.isGprsConnected()) {
       Serial.println(" OK");
       delay(500);
       Serial.println("Getting date...");
-      Serial.println(modem.getGSMDateTime(DATE_FULL));
-      mqttChoose(mqttGSM);
+      String fecha=modem.getGSMDateTime(DATE_FULL);
+      int yy=fecha.substring(0, fecha.indexOf("/")).toInt()+2000;
+      fecha=fecha.substring(fecha.indexOf("/")+1, fecha.length());
+      int mm=fecha.substring(0, fecha.indexOf("/")).toInt()-1;
+      int dd=fecha.substring(fecha.indexOf("/")+1, fecha.indexOf(",")).toInt();
+      int hh=fecha.substring(fecha.indexOf(",")+1, fecha.indexOf(":")).toInt();
+      fecha=fecha.substring(fecha.indexOf(":")+1, fecha.length());
+      int mi=fecha.substring(0, fecha.indexOf(":")).toInt();
+
+      String date=String(yy)+"-"+String(mm)+"-"+String(dd)+"/"+String(hh)+";"+String(mi);
+      if(yy>2000){
+        rtc_gpio_set_level(RST,0);
+        error+="Problemas obtener hora sim-";
+        Mode=1;
+        readyC=false; 
+      }
+      Serial.println(date);
+      setTiempo(yy,mm,dd,hh,mi);
+      Serial.println(getTiempo());
+      if(!mqttChoose(mqttGSM)){
+          Mode=1;
+      }
     }else{
       Serial.println(" fail");
-      //rtc_gpio_set_level(RST,0);
-      //staSettings();
+      rtc_gpio_set_level(RST,0);
+      error+="Problemas con el apn, asegure tener datos mobiles en la SIM-";
+      Mode=1;
+      readyC=false; 
     }
   }else{
     Serial.println(" fail");
     rtc_gpio_set_level(RST,0);
-    staSettings();
+    error+="No hay SIM en la ranura GSM-";
+    Mode=1;
+    readyC=false; 
   }
+  return readyC;
 }
 
 void staFunctions(){
   if(!WiFi.isConnected()){
+    error+="Se ha desconectado del punto de acceso-";
     apSettings();
+    return;
   }
-  delay(10000);
-}
-
-void saveFirts(String ssid, String pass){
-      writeFile(SD, "/config.txt", " ");
-      JsonArray wifi = areglo.to<JsonArray>();
-      JsonObject datos = objeto.to<JsonObject>();
-      datos["ssid"]=ssid;
-      datos["pass"]=pass;
-      wifi.add(datos);
-      String Json;
-      serializeJson(areglo, Json);
-      int sizeJson=Json.length()+1;
-      char toSave[sizeJson];
-      Json.toCharArray(toSave, sizeJson);
-      appendFile(SD, "/config.txt", toSave);
-}
-
-void saveConfigSD(String ssid, String pass){
-    if(SD.exists("/config.txt")){
-      String datos=readFile(SD, "/config.txt");
-      char json[500];
-      datos.toCharArray(json, 500);
-      DeserializationError error = deserializeJson(areglo, json);
-      if (error) {
-        Serial.print(F("deserializeJson() failed: "));
-        Serial.println(error.c_str());
-        return;
-      }
-      int WifiSaved=areglo.size();
-      if (WifiSaved>8){
-        deleteFile(SD, "/config.txt");
-        saveFirts(ssid, pass);
-      }else{
-        writeFile(SD, "/config.txt", " ");
-        JsonObject datos = objeto.to<JsonObject>();
-        datos["ssid"]=ssid;
-        datos["pass"]=pass;
-        areglo.add(datos);
-        String Json;
-        serializeJson(areglo, Json);
-        int sizeJson=Json.length()+1;
-        char toSave[sizeJson];
-        Json.toCharArray(toSave, sizeJson);
-        appendFile(SD, "/config.txt", toSave);
-      }     
-    }else{
-      saveFirts(ssid, pass);
-    }
+  SaveData();
+  ConectSend(mqttWIFI);
+  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON); 
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  esp_deep_sleep_start();
 }
 
 void apFunctions(){
-  WiFiClient client = serverHtml.available();   // Listen for incoming clients
- if (client) {
-   // an http request ends with a blank line
-   boolean currentLineIsBlank = true;
-   while (client.connected()) {
-     while(client.available()) {
-       char c = client.read();       
-       if (c == '\n' && currentLineIsBlank) {
-          // Here is where the POST data is.
-          String userpass;  
-          if(client.available()){
-            //Serial.write(client.read());
-            const char separador='&';
-            const char igual='=';
-            //leer documento y separar valores
-            userpass=client.readStringUntil('\n');
-            String ssid=userpass.substring(0, userpass.indexOf(separador));
-            String pass=userpass.substring(userpass.indexOf(separador)+1);
-            ssid=ssid.substring(ssid.indexOf(igual)+1);
-            pass=pass.substring(pass.indexOf(igual)+1);
-            //guardar variables SSID
-            ssid.toCharArray(STAssid, 50);
-            //guardar variables PASS
-            pass.toCharArray(STApassword, 50);
-            saveConfigSD(ssid, pass);
-            Serial.println("Sending response");
-            // send a standard http response header
-            client.println("HTTP/1.0 200 OK");
-            client.println("Content-Type: text/html");
-            client.println();
-            String s = DONE;
-            client.print(s);
-            client.stop();
-            delay(100);
-            staSettings();
-            delay(100);
-         }else{
-          Serial.println("Sending response");
-          // send a standard http response header
-          client.println("HTTP/1.0 200 OK");
-          client.println("Content-Type: text/html");
-          client.println();
-          String s = MAIN_page;
-          client.print(s);
-          client.stop();
-         }
-       }
-       else if (c == '\n') {
-         // you're starting a new line
-         currentLineIsBlank = true;
-       }
-       else if (c != '\r') {
-         // you've gotten a character on the current line
-         currentLineIsBlank = false;
-       }
- 
-     }
-   }
- }
- delay(1);
+  server.handleClient();
 }
 
+void gsmFunctions(){
+  SaveData();
+  ConectSend(mqttGSM);
+  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON); 
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  esp_deep_sleep_start();
+  }
+
+void noConnected(){
+  SaveData();
+  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON); 
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  esp_deep_sleep_start();
+  }

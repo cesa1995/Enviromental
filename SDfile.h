@@ -23,23 +23,6 @@ void deleteFile(fs::FS &fs, const char * path){
     }
 }
 
-String readFile(fs::FS &fs, const char * path){
-    Serial.printf("Reading file: %s\n", path);
-    String datos;
-    File file = fs.open(path);
-    if(!file){
-        Serial.println("Failed to open file for reading");
-    }
-
-    Serial.print("Read from file: ");
-    while(file.available()){
-        datos=file.readString();
-        //Serial.write(datos);
-    }
-    file.close();
-    return datos;
-}
-
 void appendFile(fs::FS &fs, const char * path, const char * message){
     Serial.printf("Appending to file: %s\n", path);
 
@@ -56,4 +39,83 @@ void appendFile(fs::FS &fs, const char * path, const char * message){
     file.close();
 }
 
+void loadConfiguration(const char *filename) {
+  File file = SD.open(filename);
 
+  if(!file){
+        Serial.println("Failed to open file for reading");
+  }
+  DeserializationError error = deserializeJson(doc, file);
+  if (error)
+    Serial.println(F("Failed to read file, using default configuration"));
+
+  strlcpy(sim.apn, doc["sim"][0] | "", sizeof(sim.apn)); 
+  strlcpy(sim.user, doc["sim"][1] | "", sizeof(sim.user)); 
+  strlcpy(sim.pass, doc["sim"][2] | "", sizeof(sim.pass)); 
+  strlcpy(STA.ssid, doc["sta"][0] | "", sizeof(STA.ssid)); 
+  strlcpy(STA.pass, doc["sta"][1] | "", sizeof(STA.pass));
+  strlcpy(AP.ssid, doc["ap"][0] | "9-COCO2NH4", sizeof(AP.ssid)); 
+  strlcpy(AP.pass, doc["ap"][1] | "", sizeof(AP.pass)); 
+
+  file.close();
+}
+
+void saveConfiguration(const char *filename) {
+
+  SD.remove(filename);
+
+  File file = SD.open(filename, FILE_WRITE);
+  if (!file) {
+    Serial.println(F("Failed to create file"));
+    return;
+  }
+  
+  JsonArray SIM=doc.createNestedArray("sim");
+  SIM.add(sim.apn);
+  SIM.add(sim.user);
+  SIM.add(sim.pass);
+
+  JsonArray sta=doc.createNestedArray("sta");
+  sta.add(STA.ssid);
+  sta.add(STA.pass);
+
+  JsonArray ap=doc.createNestedArray("ap");
+  ap.add(AP.ssid);
+  ap.add(AP.pass);
+
+  if (serializeJson(doc, file) == 0) {
+    Serial.println(F("Failed to write to file"));
+  }
+
+  file.close();
+}
+
+void printFile(const char *filename) {
+  File file = SD.open(filename);
+  if (!file) {
+    Serial.println(F("Failed to read file"));
+    return;
+  }
+
+  while (file.available()) {
+    Serial.print((char)file.read());
+  }
+  Serial.println();
+
+  file.close();
+}
+
+boolean SD_file_download(String filename){
+  boolean retorno=true;
+  if (SD_present) { 
+    File download = SD.open("/"+filename);
+    if (download) {
+      server.sendHeader("Content-Type", "text/text");
+      server.sendHeader("Content-Disposition", "attachment; filename="+filename);
+      server.sendHeader("Connection", "close");
+      server.streamFile(download, "application/octet-stream");
+      download.close();
+    } else {error +="No existe el Archivo-"; retorno=false; }
+  } else {error +="SD no insertada-"; retorno=false;}
+  return retorno;
+}
