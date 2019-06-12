@@ -4,12 +4,14 @@ void writeFile(fs::FS &fs, const char * path, const char * message){
     File file = fs.open(path, FILE_WRITE);
     if(!file){
         Serial.println("Failed to open file for writing");
+        error += "No se pudo abrir el archivo, para ser escrito- ";
         return;
     }
     if(file.print(message)){
         Serial.println("File written");
     } else {
         Serial.println("Write failed");
+        error += "No se pudo escribir en el archivo- ";
     }
     file.close();
 }
@@ -20,6 +22,7 @@ void deleteFile(fs::FS &fs, const char * path){
         Serial.println("File deleted");
     } else {
         Serial.println("Delete failed");
+        error += "No se pudo borrar el archivo- ";
     }
 }
 
@@ -29,12 +32,14 @@ void appendFile(fs::FS &fs, const char * path, const char * message){
     File file = fs.open(path, FILE_APPEND);
     if(!file){
         Serial.println("Failed to open file for appending");
+        error += "No se pudo abrir el archivo, para ser agregado- ";
         return;
     }
     if(file.print(message)){
         Serial.println("Message appended");
     } else {
         Serial.println("Append failed");
+        error += "No se pudo agregar en el archivo- ";
     }
     file.close();
 }
@@ -44,10 +49,13 @@ void loadConfiguration(const char *filename) {
 
   if(!file){
         Serial.println("Failed to open file for reading");
+        error += "No se pudo leer el archivo de configuracion- ";
   }
-  DeserializationError error = deserializeJson(doc, file);
-  if (error)
+  DeserializationError errorD = deserializeJson(doc, file);
+  if (errorD){
     Serial.println(F("Failed to read file, using default configuration"));
+    error += "No se pudo deserializar el Json del archivo- ";
+  }
 
   strlcpy(sim.apn, doc["sim"][0] | "", sizeof(sim.apn)); 
   strlcpy(sim.user, doc["sim"][1] | "", sizeof(sim.user)); 
@@ -67,6 +75,7 @@ void saveConfiguration(const char *filename) {
   File file = SD.open(filename, FILE_WRITE);
   if (!file) {
     Serial.println(F("Failed to create file"));
+    error += "No se pudo crear el archivo de configuracion- ";
     return;
   }
   
@@ -85,6 +94,7 @@ void saveConfiguration(const char *filename) {
 
   if (serializeJson(doc, file) == 0) {
     Serial.println(F("Failed to write to file"));
+    error +="No se pudo serializar el archivo de configuracion- ";
   }
 
   file.close();
@@ -94,6 +104,7 @@ void printFile(const char *filename) {
   File file = SD.open(filename);
   if (!file) {
     Serial.println(F("Failed to read file"));
+    error += "No se pudo leer leer el archivo- ";
     return;
   }
 

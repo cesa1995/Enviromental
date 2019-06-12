@@ -116,7 +116,7 @@ boolean gsmSettings(){
       int mi=fecha.substring(0, fecha.indexOf(":")).toInt();
 
       String date=String(yy)+"-"+String(mm)+"-"+String(dd)+"/"+String(hh)+";"+String(mi);
-      if(yy>2000){
+      if(yy<2000){
         rtc_gpio_set_level(RST,0);
         error+="Problemas obtener hora sim-";
         Mode=1;
@@ -127,6 +127,7 @@ boolean gsmSettings(){
       Serial.println(getTiempo());
       if(!mqttChoose(mqttGSM)){
           Mode=1;
+          readyC=false; 
       }
     }else{
       Serial.println(" fail");
@@ -165,6 +166,7 @@ void apFunctions(){
 void gsmFunctions(){
   SaveData();
   ConectSend(mqttGSM);
+  rtc_gpio_set_level(RST,0);
   esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON); 
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   esp_deep_sleep_start();

@@ -34,7 +34,8 @@ void ConectSend(PubSubClient mqtt){
   if(!mqtt.connected()){
     Serial.print("Broker connecting...");
     if(!mqttConnect(mqtt)){
-      Serial.println("Fail");    
+      Serial.println("Fail");
+      error +="No se pudo conectar al servidor MQTT-";
     }else{
       Serial.println("OK");
       delay(300);

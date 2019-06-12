@@ -29,6 +29,7 @@ String getTiempo(){
   // Convert now to tm struct for local timezone
   tm* localtm = localtime(&now);
   tiempo=String(localtm->tm_year+1900)+"/"+String(localtm->tm_mday)+"/"+String(localtm->tm_mon+1)+" "+String(localtm->tm_hour)+":"+String(localtm->tm_min);
+  Serial.println(tiempo);
   return tiempo;
 }
 

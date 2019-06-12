@@ -67,9 +67,10 @@ String LoadPage(int type){
         html +="<a href=\"/?download=Log.txt\">Descargar Datos</a><a href=\"/log\">Logs</a><a href=\"/borrar?type=0\">Borrar Datos</a><a href=\"/borrar?type=1\">Borrar Configuracion</a>";
         html +="<a href=\"/reboot?Mode=3\">Riniciar modo sin conexion</a><a href=\"reboot?Mode=1\">Reiniciar Modo Wifi-STA</a><a href=\"/reboot\">Reiniciar equipo</a></div>\n";
         html +="<div class=\"links\">\n";
-        html +="<p>GSM-SIM</p><p><strong>Apn:</strong> "+String(sim.apn)+"\n <strong>Usuario:</strong> "+String(sim.user)+"\n <strong>Contrase&ntilde;a:</strong> "+String(sim.pass)+"</p>\n";
-        html +="<p>Wifi-STA</p><p><strong>SSID:</strong> "+String(STA.ssid)+" <strong>Contrase&ntilde;a:</strong> "+String(STA.pass)+"</p>\n";
-        html +="<p>Wifi-AP</p><strong>SSID:</strong> "+String(AP.ssid)+" <strong>Contrase&ntilde;a:</strong> "+String(AP.pass)+"<p></p>\n";
+        html +="<p><strong>GSM-SIM</strong></p><p><strong>Apn:</strong> "+String(sim.apn)+"\n <strong>Usuario:</strong> "+String(sim.user)+"\n <strong>Contrase&ntilde;a:</strong> "+String(sim.pass)+"</p>\n";
+        html +="<p><strong>Wifi-STA</strong></p><p><strong>SSID:</strong> "+String(STA.ssid)+" <strong>Contrase&ntilde;a:</strong> "+String(STA.pass)+"</p>\n";
+        html +="<p><strong>Wifi-AP</strong></p><strong>SSID:</strong> "+String(AP.ssid)+" <strong>Contrase&ntilde;a:</strong> "+String(AP.pass)+"<p></p>\n";
+        html +="<p><strong>Tiempo</strong></p><p>"+getTiempo()+"</p>\n";
         html +="</div></div></body></html>\n";
       }break;
       case 1:{

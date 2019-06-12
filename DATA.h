@@ -12,6 +12,7 @@ void SendData(PubSubClient mqtt){
     Serial.println(" OK");
   }else{
     Serial.println(" Fail");
+    error +="No se pudo enviar los datos-";
   }
   delay(1000);
   
@@ -27,6 +28,7 @@ void SendData(PubSubClient mqtt){
     Serial.println(" OK");
   }else{
     Serial.println(" Fail");
+    error +="No se pudo enviar los datos-";
   }
   delay(1000);
 }
