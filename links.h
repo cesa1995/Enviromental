@@ -1,44 +1,53 @@
 void principal(){
   boolean pagina=true;
-    if (server.args() > 0 ) { // Arguments were received
-      if (server.hasArg("download")) {pagina=SD_file_download(server.arg(0));}
-    }
-    if(pagina){
-      server.send(200, "text/html", LoadPage(0));
-    }else{
-      server.send(200, "text/html", LoadPage(9));
+  if (server.args() > 0 ) { // Arguments were received
+    if (server.hasArg("download")) {
+      pagina=SD_file_download(server.arg(0));
     }
   }
+  if(pagina){
+    server.send(200, "text/html", LoadPage(0));
+  }else{
+    server.send(200, "text/html", LoadPage(10));
+  }
+}
 
 void apn(){
   server.send(200, "text/html", LoadPage(1));
-  }
+}
 
 void sta(){
   server.send(200, "text/html", LoadPage(2));
-  }
+}
 
 void ap(){
   server.send(200, "text/html", LoadPage(3));
-  }
+}
 
 void reloj(){
   server.send(200, "text/html", LoadPage(4));
-  }
+}
+
+void Ptime(){
+  server.send(200, "text/html", LoadPage(5));
+}
 
 void borrar(){
   if (server.args() > 0 ) { // Arguments were received
     if (server.hasArg("type")) {
       if(server.arg("type").toInt()==0){
         SD.remove(Log);
+        loadLogs();
       }
       if(server.arg("type").toInt()==1){
         SD.remove(configuracion);
       }
+      if(server.arg("type").toInt()==2){
+        SD.remove(errorFile);
+      }
     }
   }
-  
-  server.send(200, "text/html", LoadPage(8));
+  server.send(200, "text/html", LoadPage(9));
 }
 
 void save(){
@@ -78,39 +87,49 @@ void save(){
       String prueba= String(yeard)+";"+String(mes)+";"+String(dia)+"/"+String(hora)+"*"+String(minu);
       Serial.println(prueba);
       setTiempo(yeard, mes, dia, hora, minu);
-      }break;
-      
+    }break;
+    case 5:{
+      TIME_TO_SLEEP=server.arg("time").toInt();
     }
-  if(type==0 || type==1 || type==2 || type==3){  
+      
+  }
+  if(type==0 || type==1 || type==2 || type==3 || type==5){  
     saveConfiguration(configuracion);
   }else{
      
   }
-  server.send(200, "text/html", LoadPage(5));
-  }
+  server.send(200, "text/html", LoadPage(6));
+}
 
 void errores(){
-  server.send(200, "text/html", LoadPage(6));
-  }
+  server.send(200, "text/html", LoadPage(7));
+}
 
 void reboot(){
   if (server.args() > 0 ) { // Arguments were received
     if (server.hasArg("Mode")) {
       if(server.arg("Mode").toInt()==1){
         Mode=1;
+        ModeTemp=1;
+      }
+      if(server.arg("Mode").toInt()==2){
+        Mode=2;
+        ModeTemp=2;
       }
       if(server.arg("Mode").toInt()==3){
         Mode=3;
+        ModeTemp=3;
       }
     }
   }else{
-    Mode=2;
+    Mode=0;
   }
-  server.send(200, "text/html", LoadPage(7));
+  saveConfiguration(configuracion);
+  server.send(200, "text/html", LoadPage(8));
   delay(500);
   ESP.restart();
 }
 
 void handle_NotFound(){
-    server.send(404, "text/plain", "Not found");
-  }
+  server.send(404, "text/plain", "Not found");
+}

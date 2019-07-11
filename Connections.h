@@ -14,6 +14,7 @@ void apSettings(){
   server.on("/log", errores);
   server.on("/save", save);
   server.on("/reloj", reloj);
+  server.on("/time", Ptime);
   server.on("/borrar", borrar);
   server.on("/reboot", reboot);
   server.onNotFound(handle_NotFound);
@@ -38,8 +39,7 @@ boolean staSettings(){
     }while(WiFi.status() != WL_CONNECTED && trys<=10);
         
     if(WiFi.status() != WL_CONNECTED){
-      error+="Error conectar al punto de acceso-";
-      Mode=0;
+      saveLogs("Error conectar al punto de acceso");
       readyS=false;
     }else{
       Serial.println("");
@@ -56,17 +56,14 @@ boolean staSettings(){
       }
       if(cargar>4){
         Serial.println("Failed to obtain time");
-        error+="Error obtener hora Wifi-";
-        Mode=0;
+        saveLogs("Error obtener hora Wifi");
         readyS=false;
-      }else if(!mqttChoose(mqttWIFI)){
-        Mode=0;  
-        APB=0;
+      }else{ 
+        readyS=mqttChoose(mqttWIFI);
       }
      }
   }else{
-    error+="No existe el archivo de Configuracion-";
-    Mode=0;
+    saveLogs("No existe el archivo de Configuracion");
     readyS=false;
   }
   return readyS;
@@ -79,7 +76,7 @@ boolean gsmSettings(){
   rtc_gpio_set_level(RST,1);
   delay(100);
   if(!TinyGsmAutoBaud(SerialGsm)){
-    error+="Modulo Gsm no encendido-";
+    saveLogs("Modulo Gsm no encendido");
     readyC=false;
   }
   delay(100);
@@ -104,43 +101,43 @@ boolean gsmSettings(){
     }
     if (modem.isGprsConnected()) {
       Serial.println(" OK");
+      cargar=0;
+      while(!modem.syncTime(-16) && cargar<10){
+        Serial.print(".");
+        cargar++;
+      }
       delay(500);
       Serial.println("Getting date...");
-      String fecha=modem.getGSMDateTime(DATE_FULL);
-      int yy=fecha.substring(0, fecha.indexOf("/")).toInt()+2000;
-      fecha=fecha.substring(fecha.indexOf("/")+1, fecha.length());
-      int mm=fecha.substring(0, fecha.indexOf("/")).toInt()-1;
-      int dd=fecha.substring(fecha.indexOf("/")+1, fecha.indexOf(",")).toInt();
-      int hh=fecha.substring(fecha.indexOf(",")+1, fecha.indexOf(":")).toInt();
-      fecha=fecha.substring(fecha.indexOf(":")+1, fecha.length());
-      int mi=fecha.substring(0, fecha.indexOf(":")).toInt();
-
-      String date=String(yy)+"-"+String(mm)+"-"+String(dd)+"/"+String(hh)+";"+String(mi);
-      if(yy<2000){
+      if(cargar<10){
+        String fecha=modem.getGSMDateTime(DATE_FULL);
+        int yy=fecha.substring(0, fecha.indexOf("/")).toInt()+2000;
+        fecha=fecha.substring(fecha.indexOf("/")+1, fecha.length());
+        int mm=fecha.substring(0, fecha.indexOf("/")).toInt()-1;
+        int dd=fecha.substring(fecha.indexOf("/")+1, fecha.indexOf(",")).toInt();
+        int hh=fecha.substring(fecha.indexOf(",")+1, fecha.indexOf(":")).toInt();
+        fecha=fecha.substring(fecha.indexOf(":")+1, fecha.length());
+        int mi=fecha.substring(0, fecha.indexOf(":")).toInt();
+  
+        String date=String(yy)+"-"+String(mm)+"-"+String(dd)+"/"+String(hh)+";"+String(mi);
+        Serial.println(date);
+        setTiempo(yy,mm,dd,hh,mi);
+        Serial.println(getTiempo());
+        readyC=mqttChoose(mqttGSM);
+      }else{
         rtc_gpio_set_level(RST,0);
-        error+="Problemas obtener hora sim-";
-        Mode=1;
+        saveLogs("Problemas obtener hora sim");
         readyC=false; 
-      }
-      Serial.println(date);
-      setTiempo(yy,mm,dd,hh,mi);
-      Serial.println(getTiempo());
-      if(!mqttChoose(mqttGSM)){
-          Mode=1;
-          readyC=false; 
       }
     }else{
       Serial.println(" fail");
       rtc_gpio_set_level(RST,0);
-      error+="Problemas con el apn, asegure tener datos mobiles en la SIM-";
-      Mode=1;
+      saveLogs("Problemas con el apn, asegure tener datos mobiles en la SIM");
       readyC=false; 
     }
   }else{
     Serial.println(" fail");
     rtc_gpio_set_level(RST,0);
-    error+="No hay SIM en la ranura GSM-";
-    Mode=1;
+    saveLogs("No hay SIM en la ranura GSM");
     readyC=false; 
   }
   return readyC;
@@ -148,15 +145,15 @@ boolean gsmSettings(){
 
 void staFunctions(){
   if(!WiFi.isConnected()){
-    error+="Se ha desconectado del punto de acceso-";
-    apSettings();
-    return;
+    if(staSettings()){
+      ConectSend(mqttWIFI);
+    }else{
+      saveLogs("No se ha podido conectar al punto de acceso");
+    }
+  }else{
+    ConectSend(mqttWIFI);
   }
   SaveData();
-  ConectSend(mqttWIFI);
-  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON); 
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  esp_deep_sleep_start();
 }
 
 void apFunctions(){
@@ -164,17 +161,18 @@ void apFunctions(){
 }
 
 void gsmFunctions(){
-  SaveData();
-  ConectSend(mqttGSM);
-  rtc_gpio_set_level(RST,0);
-  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON); 
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  esp_deep_sleep_start();
+  if(!modem.isGprsConnected()){
+    if(gsmSettings()){
+      ConectSend(mqttGSM);
+    }else{
+      saveLogs("No se ha podido conectar a la red GSM");
+    }
+  }else{
+    ConectSend(mqttGSM);
   }
+  SaveData();
+}
 
 void noConnected(){
   SaveData();
-  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON); 
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  esp_deep_sleep_start();
-  }
+}

@@ -12,7 +12,7 @@ void SendData(PubSubClient mqtt){
     Serial.println(" OK");
   }else{
     Serial.println(" Fail");
-    error +="No se pudo enviar los datos-";
+    saveLogs("No se pudo enviar los datos");
   }
   delay(1000);
   
@@ -28,7 +28,7 @@ void SendData(PubSubClient mqtt){
     Serial.println(" OK");
   }else{
     Serial.println(" Fail");
-    error +="No se pudo enviar los datos-";
+    saveLogs("No se pudo enviar los datos");
   }
   delay(1000);
 }
@@ -49,19 +49,23 @@ void SaveData(){
 }
 
 void MakeData(){
-  //------------Leer Sensores----------  
-  //Lectura BME
-  Temperatura+=bme.readTemperature();
-  Humedad+=bme.readHumidity();
-  Presion+=bme.readPressure()/100.0F;
-  Altitud+=bme.readAltitude(SEALEVELPRESSURE_HPA);
-
+  //------------Leer Sensores---------- 
+  Temperatura=0;
+  Humedad=0;
+  Presion=0;
+  Altitud=0; 
   CO=0;
   CH4=0;
   CO2=0;
   
-  //Lectura Conversor
   for(int i=0; i<leer; i++){
+    //Lectura BME
+    Temperatura+=bme.readTemperature();
+    Humedad+=bme.readHumidity();
+    Presion+=bme.readPressure()/100.0F;
+    Altitud+=bme.readAltitude(SEALEVELPRESSURE_HPA);
+    delay(250);
+    //Lectura Conversor
     mq9=ads.readADC_SingleEnded(0);
     mq9=ads.readADC_SingleEnded(0);
     mq4=ads.readADC_SingleEnded(1);
@@ -72,8 +76,13 @@ void MakeData(){
     CO+=mq9*mul;
     CH4+=mq4*mul;
     CO2+=mq135*mul;
-    delay(300);
+    delay(250);
   }
+  Serial.println(mq135);
+  Temperatura=Temperatura/leer;
+  Humedad=Humedad/leer;
+  Presion=Presion/leer;
+  Altitud=Altitud/leer; 
 
   CO=CO/leer;
   CO2=CO2/leer;

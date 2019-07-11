@@ -4,16 +4,31 @@ void writeFile(fs::FS &fs, const char * path, const char * message){
     File file = fs.open(path, FILE_WRITE);
     if(!file){
         Serial.println("Failed to open file for writing");
-        error += "No se pudo abrir el archivo, para ser escrito- ";
         return;
     }
     if(file.print(message)){
         Serial.println("File written");
     } else {
         Serial.println("Write failed");
-        error += "No se pudo escribir en el archivo- ";
     }
     file.close();
+}
+
+String readFile(fs::FS &fs, const char * path){
+    Serial.printf("Reading file: %s\n", path);
+    String datos;
+    File file = fs.open(path);
+    if(!file){
+        Serial.println("Failed to open file for reading");
+    }
+
+    Serial.print("Read from file: ");
+    while(file.available()){
+        datos=file.readString();
+        //Serial.write(datos);
+    }
+    file.close();
+    return datos;
 }
 
 void deleteFile(fs::FS &fs, const char * path){
@@ -22,7 +37,6 @@ void deleteFile(fs::FS &fs, const char * path){
         Serial.println("File deleted");
     } else {
         Serial.println("Delete failed");
-        error += "No se pudo borrar el archivo- ";
     }
 }
 
@@ -32,29 +46,52 @@ void appendFile(fs::FS &fs, const char * path, const char * message){
     File file = fs.open(path, FILE_APPEND);
     if(!file){
         Serial.println("Failed to open file for appending");
-        error += "No se pudo abrir el archivo, para ser agregado- ";
         return;
     }
     if(file.print(message)){
         Serial.println("Message appended");
     } else {
         Serial.println("Append failed");
-        error += "No se pudo agregar en el archivo- ";
     }
     file.close();
+}
+
+void loadLogs(){
+  if(SD.exists(errorFile)){
+    error=readFile(SD, errorFile);
+  }else{
+    error+="No hay errores Guardados -";  
+  }
+}
+
+void saveLogs(String errorString){
+  if (SD_present) { 
+    String errortime="["+getTiempo()+"] -"+errorString;
+    int sizeStr=errortime.length()+1;
+    char toSave[sizeStr];
+    errortime.toCharArray(toSave, sizeStr);
+    
+    if(SD.exists(errorFile)){
+      appendFile(SD, errorFile, toSave);
+    }else{
+      writeFile(SD, errorFile, toSave);
+    }
+  }else{
+    error="SD no insertada";
+  }
 }
 
 void loadConfiguration(const char *filename) {
   File file = SD.open(filename);
 
   if(!file){
-        Serial.println("Failed to open file for reading");
-        error += "No se pudo leer el archivo de configuracion- ";
+    Serial.println("Failed to open file for reading");
+    saveLogs("No se pudo leer el archivo de configuracion");
   }
   DeserializationError errorD = deserializeJson(doc, file);
   if (errorD){
     Serial.println(F("Failed to read file, using default configuration"));
-    error += "No se pudo deserializar el Json del archivo- ";
+    saveLogs("No se pudo deserializar el Json del archivo");
   }
 
   strlcpy(sim.apn, doc["sim"][0] | "", sizeof(sim.apn)); 
@@ -64,8 +101,11 @@ void loadConfiguration(const char *filename) {
   strlcpy(STA.pass, doc["sta"][1] | "", sizeof(STA.pass));
   strlcpy(AP.ssid, doc["ap"][0] | "9-COCO2NH4", sizeof(AP.ssid)); 
   strlcpy(AP.pass, doc["ap"][1] | "", sizeof(AP.pass)); 
+  TIME_TO_SLEEP=doc["sleep"] | 1;
+  Mode=doc["mode"] | 0;
 
   file.close();
+  delay(1000);
 }
 
 void saveConfiguration(const char *filename) {
@@ -75,7 +115,7 @@ void saveConfiguration(const char *filename) {
   File file = SD.open(filename, FILE_WRITE);
   if (!file) {
     Serial.println(F("Failed to create file"));
-    error += "No se pudo crear el archivo de configuracion- ";
+    saveLogs("No se pudo crear el archivo de configuracion");
     return;
   }
   
@@ -92,19 +132,24 @@ void saveConfiguration(const char *filename) {
   ap.add(AP.ssid);
   ap.add(AP.pass);
 
+  doc["sleep"]=TIME_TO_SLEEP;
+
+  doc["mode"]=ModeTemp;
+
   if (serializeJson(doc, file) == 0) {
     Serial.println(F("Failed to write to file"));
-    error +="No se pudo serializar el archivo de configuracion- ";
+    saveLogs("No se pudo serializar el archivo de configuracion");
   }
 
   file.close();
+  delay(1000);
 }
 
 void printFile(const char *filename) {
   File file = SD.open(filename);
   if (!file) {
     Serial.println(F("Failed to read file"));
-    error += "No se pudo leer leer el archivo- ";
+    saveLogs("No se pudo leer leer el archivo");
     return;
   }
 
@@ -126,7 +171,7 @@ boolean SD_file_download(String filename){
       server.sendHeader("Connection", "close");
       server.streamFile(download, "application/octet-stream");
       download.close();
-    } else {error +="No existe el Archivo-"; retorno=false; }
-  } else {error +="SD no insertada-"; retorno=false;}
+    } else {saveLogs("No existe el Archivo"); retorno=false; }
+  } else {error ="SD no insertada-"; retorno=false;}
   return retorno;
 }

@@ -18,7 +18,8 @@
 
 //------------Dormir---------------
 #define uS_TO_S_FACTOR 1000000  //Conversion factor for micro seconds to seconds
-#define TIME_TO_SLEEP  120        //Time ESP32 will go to sleep (in seconds)
+#define segundos 60 //conversion factor for minutes to seconds
+int TIME_TO_SLEEP=1;     //Time ESP32 will go to sleep (in minute) default 1 min
 
 //----------NTP Time------------
 const char* ntpServer = "0.south-america.pool.ntp.org";
@@ -88,7 +89,8 @@ IPAddress gateway(192,168,1,1);
 IPAddress subnet(255,255,255,0);
   
 const char *configuracion="/config.txt";
-const char *Log="/Log.txt";
+const char *Log="/Data.txt";
+const char *errorFile="/Log.txt";
 
 //------------MQTTSettings(ThingBoard)--------
 PubSubClient mqttGSM(GsmClient);
@@ -100,6 +102,7 @@ char broker[] = "demo.thingsboard.io";
 
 //-----------Reset Variables------
 static RTC_NOINIT_ATTR int Mode; //0-AP, 1-STA, 2-GSM, 3-noConected
+int ModeTemp=2;
 esp_reset_reason_t reason;
 unsigned long tiempo1 = 0;
 unsigned long tiempo2 = 0;
@@ -118,6 +121,9 @@ int APBT=0;
 #include "mqtt.h"
 #include "Connections.h"
 
+//------------Task----------------
+TaskHandle_t Task1;
+
 void setup() {
   //Iniciar Puerto Serial
   Serial.begin(115200);
@@ -126,25 +132,34 @@ void setup() {
   rtc_gpio_init(RST);
   rtc_gpio_set_direction(RST,RTC_GPIO_MODE_OUTPUT_ONLY);
   rtc_gpio_set_level(RST,0);
-  delay(1000);
+  delay(2000);
   //------------MicroSD-------------
   sdCard.begin(5,17,18,19);
-  if(!SD.begin(SD_CS,sdCard,SDSPEED)){
+  int trysd=0;
+  while(!SD.begin(SD_CS,sdCard,SDSPEED) && trysd<50){
+    Serial.print(".");
+    trysd++;
+    delay(200);
+  }
+  if(trysd>49){
       Serial.println(" ");
       Serial.println("Card Mount Failed");
       Serial.println(" ");
       SD_present=false;
       error+="Card Mount Failed-";
-      Mode=0;
-  }else{
+  }
+  if(trysd<50){
     Serial.println(" ");
     Serial.println("Card Mount Success");
     Serial.println(" ");
     delay(1000);
+    loadLogs();
   }
   //------------Cargar configuracion---
   loadConfiguration(configuracion);
+  ModeTemp=Mode;
   printFile(configuracion);
+  
   //------------Convertidor I2C----
   ads.begin();
   //------------BME280-------------
@@ -171,17 +186,41 @@ void setup() {
       Serial.println("Could not find a valid BME280 sensor, check wiring!");
       while (1);
   }
-  
+  //-----------------task1--------------
+  xTaskCreatePinnedToCore(
+    Task1code,   /* Task function. */
+    "Task1",     /* name of task. */
+    10000,       /* Stack size of task */
+    NULL,        /* parameter of the task */
+    1,           /* priority of the task */
+    &Task1,      /* Task handle to keep track of created task */
+    0);          /* pin task to core 0 */                  
+  delay(500); 
+}
+
+//-----------Task1code-----------------
+void Task1code( void * pvParameters ){
+  for(;;){
+    //Serial.print("Task1 running on core ");
+    //Serial.println(xPortGetCoreID());
+    MakeData();
+    delay(10000);
+  }
+  vTaskDelay(10);
 }
 
 void loop() {
+  //MakeData();
+  delay(10000);
+  /*Serial.print("Task1 running on core ");
+  Serial.println(xPortGetCoreID());
   if(tiempo1!=0){
     tiempo2=millis();
     if(tiempo2 < (tiempo1+(3*60*1000))){
-     Mode=0;
+      Mode=0;
     }else if(APBT==0){
-     APBT++;
-     Mode=2;  
+      APBT++;
+      Mode=ModeTemp;
     }
   }
   switch(Mode){
@@ -195,21 +234,24 @@ void loop() {
     }break;
     //modo Wifi
     case 1:{
-      MakeData();  
-      if(staSettings()){
-        staFunctions();
-      }
+      MakeData();
+      staFunctions();
     }break;
     //modo GSM
     case 2:{
       MakeData();  
-      if(gsmSettings()){
-        gsmFunctions();
-      }
+      gsmFunctions();
     }break;
     case 3:{
       MakeData();  
       noConnected();
     }break;
   }
+  
+  if (Mode!=0){
+    rtc_gpio_set_level(RST,0);
+    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON); 
+    esp_sleep_enable_timer_wakeup((TIME_TO_SLEEP * segundos) * uS_TO_S_FACTOR);
+    esp_deep_sleep_start();
+  }*/
 }
