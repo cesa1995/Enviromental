@@ -1,12 +1,17 @@
 boolean mqttConnect(PubSubClient mqtt) {
   Serial.print("Connecting to ");
   Serial.print(broker);
-
+  mqtt.disconnect();
   // Connect to MQTT Broker
   //boolean status = mqtt.connect("GsmClientTest");
 
   // Or, if you want to authenticate MQTT:
-  boolean status = mqtt.connect("Nodemcu_estacion", TOKEN, NULL);
+  int trys=0;
+  boolean status=false;
+  do{
+    status = mqtt.connect("Nodemcu_estacion", TOKEN, NULL);
+    trys++;
+  }while(status==false && trys<=4);
 
   if (status == false) {
     Serial.println(" fail");
@@ -32,6 +37,7 @@ void ConectSend(PubSubClient mqtt){
   //------------Enviar Data----------------
   //Enviar datos del BME
   if(!mqtt.connected()){
+    //----------------mqtt---------
     Serial.print("Broker connecting...");
     if(!mqttConnect(mqtt)){
       Serial.println("Fail");

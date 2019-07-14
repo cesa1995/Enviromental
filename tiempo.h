@@ -32,4 +32,3 @@ String getTiempo(){
   Serial.println(tiempo);
   return tiempo;
 }
-

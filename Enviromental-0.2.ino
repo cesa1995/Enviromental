@@ -4,7 +4,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <PubSubClient.h>
-#include <TinyGsmClient.h>
+#include <TinyGsmClient.h>*/
 #include <Wire.h>
 #include <Adafruit_ADS1015.h>
 #include <Adafruit_Sensor.h>
@@ -27,17 +27,15 @@ const long  gmtOffset_sec = -14400;
 const int   daylightOffset_sec = 0;
 
 //----------Convertidor I2C-------
-Adafruit_ADS1115 ads(0x48); // Direccion del convertidor 
-const float mul=0.1875/1000; // Multiplicador para convertir a Voltios
+Adafruit_ADS1115 ads; //(0x48); // Direccion del convertidor 
+const float mul=0.0625/1000; //0.1875/1000; // Multiplicador para convertir a Voltios
 
 //----------BME280----------------
 #define SEALEVELPRESSURE_HPA (1013.25) // Definir Una constante de presion
 Adafruit_BME280 bme; // Crear Objeto BME
 
 //----------datos----------------
-float Temperatura, Humedad, Presion, Altitud, CO, CH4, CO2;
-int16_t mq9, mq4, mq135, none;// COB, CH4B, CO2B;
-int leer=10;
+float Temperatura_copy, Humedad_copy, Presion_copy, Altitud_copy, CO_copy, CH4_copy, CO2_copy;
 
 //-----------SIM800L--------------
 #include <HardwareSerial.h>
@@ -101,16 +99,16 @@ char broker[] = "demo.thingsboard.io";
 #define NUMERO_SERIAL  "SN-009"
 
 //-----------Reset Variables------
-static RTC_NOINIT_ATTR int Mode; //0-AP, 1-STA, 2-GSM, 3-noConected
+static RTC_NOINIT_ATTR int Mode; // 1-STA, 2-GSM, 3-noConected
 int ModeTemp=2;
 esp_reset_reason_t reason;
-unsigned long tiempo1 = 0;
-unsigned long tiempo2 = 0;
 
 //------------Error del equipo-----
 String error;
-int APB=0;
-int APBT=0;
+
+
+//-----------variables para enviar--
+boolean ready_for_send = false;
 
 //------------archivos creados-----
 #include "tiempo.h"
@@ -120,13 +118,15 @@ int APBT=0;
 #include "DATA.h"
 #include "mqtt.h"
 #include "Connections.h"
-
 //------------Task----------------
 TaskHandle_t Task1;
+TaskHandle_t Task2;
+
 
 void setup() {
   //Iniciar Puerto Serial
-  Serial.begin(115200);
+  Serial.begin(115200); 
+  
   //------------------SIM800L-----------
   delay(10);
   rtc_gpio_init(RST);
@@ -155,13 +155,10 @@ void setup() {
     delay(1000);
     loadLogs();
   }
-  //------------Cargar configuracion---
-  loadConfiguration(configuracion);
-  ModeTemp=Mode;
-  printFile(configuracion);
-  
   //------------Convertidor I2C----
+  ads.setGain(GAIN_TWO);
   ads.begin();
+
   //------------BME280-------------
   bool status;
   status = bme.begin(0x76);  
@@ -169,86 +166,88 @@ void setup() {
       Serial.println("Could not find a valid BME280 sensor, check wiring!");
       while (1);
   }
+  
+  //------------Cargar configuracion---
+  loadConfiguration(configuracion);
+  ModeTemp=Mode;
+  printFile(configuracion);
+
+  //----------Encendido del equipo--
   reason=esp_reset_reason();
   delay(100);
   if((reason != ESP_RST_DEEPSLEEP) && (reason != ESP_RST_SW)){
       //Mode=2;//modo GSM
-      tiempo1=millis();
+      //tiempo1=millis();
       //TODO: descomentar el minuto de calentar sensores en la encendida
       //delay(60000);
-  }  
-  //------------Convertidor I2C----
-  ads.begin();
-  //------------BME280-------------
-  bool statusBME;
-  statusBME = bme.begin(0x76);  
-  if (!statusBME) {
-      Serial.println("Could not find a valid BME280 sensor, check wiring!");
-      while (1);
   }
-  //-----------------task1--------------
+  //------------configurar STA_AP-------
+  wifiSettings();
+  //-----------------task1-----------
   xTaskCreatePinnedToCore(
-    Task1code,   /* Task function. */
-    "Task1",     /* name of task. */
-    10000,       /* Stack size of task */
-    NULL,        /* parameter of the task */
-    1,           /* priority of the task */
-    &Task1,      /* Task handle to keep track of created task */
-    0);          /* pin task to core 0 */                  
-  delay(500); 
+    Task1code,   // Task function. 
+    "Task1",     // name of task. 
+    10000,       // Stack size of task 
+    NULL,        // parameter of the task 
+    1,           // priority of the task 
+    &Task1,      // Task handle to keep track of created task 
+    1);          // pin task to core 0 
+  delay(500);
+  
+  xTaskCreatePinnedToCore(
+    Task2code,   // Task function. 
+    "Task2",     // name of task. 
+    10000,       // Stack size of task 
+    NULL,        // parameter of the task 
+    1,           // priority of the task 
+    &Task2,      // Task handle to keep track of created task 
+    0);          // pin task to core 0 
+  delay(500);
 }
 
 //-----------Task1code-----------------
 void Task1code( void * pvParameters ){
+  delay(1000);
+  btStop();
   for(;;){
-    //Serial.print("Task1 running on core ");
-    //Serial.println(xPortGetCoreID());
+    server.handleClient();
+    delay(5);
+  }
+  vTaskDelay(10);
+}
+
+//-----------Task2code-----------------
+void Task2code( void * pvParameters ){
+  //------------configurar STA_AP-------
+  for(;;){
     MakeData();
+    ready_for_send = true;
     delay(10000);
   }
   vTaskDelay(10);
 }
 
 void loop() {
-  //MakeData();
-  delay(10000);
-  /*Serial.print("Task1 running on core ");
-  Serial.println(xPortGetCoreID());
-  if(tiempo1!=0){
-    tiempo2=millis();
-    if(tiempo2 < (tiempo1+(3*60*1000))){
-      Mode=0;
-    }else if(APBT==0){
-      APBT++;
-      Mode=ModeTemp;
+  if(ready_for_send==true){
+    switch(Mode){
+      //modo Wifi
+      case 1:{
+        WiFi.enableSTA(true);
+        staFunctions();
+        WiFi.enableSTA(false);
+      }break;
+      //modo GSM
+      case 2:{
+        WiFi.enableSTA(false);
+        gsmFunctions();
+      }break;
+      case 3:{ 
+        noConnected();
+      }break;
     }
+    delay(60000);
   }
-  switch(Mode){
-    //modo configuracion del wifi
-    case 0:{
-      if (APB==0){
-        apSettings(); 
-        APB++;
-      }
-      apFunctions();
-    }break;
-    //modo Wifi
-    case 1:{
-      MakeData();
-      staFunctions();
-    }break;
-    //modo GSM
-    case 2:{
-      MakeData();  
-      gsmFunctions();
-    }break;
-    case 3:{
-      MakeData();  
-      noConnected();
-    }break;
-  }
-  
-  if (Mode!=0){
+  /*if (Mode!=0){
     rtc_gpio_set_level(RST,0);
     esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON); 
     esp_sleep_enable_timer_wakeup((TIME_TO_SLEEP * segundos) * uS_TO_S_FACTOR);

@@ -1,37 +1,10 @@
-void apSettings(){
-  WiFi.disconnect();
-  WiFi.mode(WIFI_AP);
-  Serial.println("Configuring access point...");
-  WiFi.softAP(AP.ssid, AP.pass);
-  delay(500);
-  WiFi.softAPConfig(local_ip, gateway, subnet);
-  delay(100);
-
-  server.on("/", principal);
-  server.on("/apn", apn);
-  server.on("/sta", sta);
-  server.on("/ap", ap);
-  server.on("/log", errores);
-  server.on("/save", save);
-  server.on("/reloj", reloj);
-  server.on("/time", Ptime);
-  server.on("/borrar", borrar);
-  server.on("/reboot", reboot);
-  server.onNotFound(handle_NotFound);
-  
-  server.begin();
-  Serial.println("HTTP server started");
-}
-
 boolean staSettings(){
   boolean readyS=true;
   if(SD.exists(configuracion)){
-    int trys=0;
-    WiFi.disconnect();
-    WiFi.mode(WIFI_STA);
     Serial.print("Connecting to ");
     Serial.println(STA.ssid);
     WiFi.begin(STA.ssid, STA.pass);
+    int trys=0;
     do{
       delay(500);
       Serial.print(".");
@@ -66,13 +39,38 @@ boolean staSettings(){
     saveLogs("No existe el archivo de Configuracion");
     readyS=false;
   }
-  return readyS;
+  return readyS;  
+}
+
+boolean wifiSettings(){
+  WiFi.mode(WIFI_AP_STA);
+  //------------modo estacion----------------
+  staSettings();
+
+  Serial.println("Configuring access point...");
+  WiFi.softAP(AP.ssid, AP.pass);
+  WiFi.softAPConfig(local_ip, gateway, subnet);
+  
+  //-----------configurar servidor-----------
+  server.on("/", principal);
+  server.on("/apn", apn);
+  server.on("/sta", sta);
+  server.on("/ap", ap);
+  server.on("/log", errores);
+  server.on("/save", save);
+  server.on("/reloj", reloj);
+  server.on("/time", Ptime);
+  server.on("/borrar", borrar);
+  server.on("/reboot", reboot);
+  server.onNotFound(handle_NotFound);  
+  server.begin();
+  Serial.println("HTTP server started");
 }
 
 boolean gsmSettings(){
   boolean readyC=true;
-  WiFi.disconnect(true);
-  WiFi.mode(WIFI_OFF);
+  //WiFi.disconnect(true);
+  //WiFi.mode(WIFI_OFF);
   rtc_gpio_set_level(RST,1);
   delay(100);
   if(!TinyGsmAutoBaud(SerialGsm)){
@@ -81,7 +79,7 @@ boolean gsmSettings(){
   }
   delay(100);
   if(modem.getSimStatus()==1){
-    WiFi.mode( WIFI_MODE_NULL );
+    //WiFi.mode( WIFI_MODE_NULL );
     Serial.println("Initializing modem...");
     modem.restart();
     String modemInfo = modem.getModemInfo();
@@ -154,10 +152,6 @@ void staFunctions(){
     ConectSend(mqttWIFI);
   }
   SaveData();
-}
-
-void apFunctions(){
-  server.handleClient();
 }
 
 void gsmFunctions(){

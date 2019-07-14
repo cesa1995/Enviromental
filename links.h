@@ -37,13 +37,13 @@ void borrar(){
     if (server.hasArg("type")) {
       if(server.arg("type").toInt()==0){
         SD.remove(Log);
-        loadLogs();
       }
       if(server.arg("type").toInt()==1){
         SD.remove(configuracion);
       }
       if(server.arg("type").toInt()==2){
         SD.remove(errorFile);
+        loadLogs();
       }
     }
   }
