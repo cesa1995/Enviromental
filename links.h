@@ -43,6 +43,7 @@ void borrar(){
       }
       if(server.arg("type").toInt()==2){
         SD.remove(errorFile);
+        error="";
         loadLogs();
       }
     }

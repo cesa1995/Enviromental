@@ -44,12 +44,14 @@ boolean staSettings(){
 
 boolean wifiSettings(){
   WiFi.mode(WIFI_AP_STA);
+  
+  Serial.print("Configuring access point...");
+  Serial.println(AP.ssid);
+  WiFi.softAP(AP.ssid, AP.pass);
+  delay(100);
   //------------modo estacion----------------
   staSettings();
-
-  Serial.println("Configuring access point...");
-  WiFi.softAP(AP.ssid, AP.pass);
-  WiFi.softAPConfig(local_ip, gateway, subnet);
+  //WiFi.softAPConfig(local_ip, gateway, subnet);
   
   //-----------configurar servidor-----------
   server.on("/", principal);
@@ -165,6 +167,7 @@ void gsmFunctions(){
     ConectSend(mqttGSM);
   }
   SaveData();
+  rtc_gpio_set_level(RST,0);
 }
 
 void noConnected(){

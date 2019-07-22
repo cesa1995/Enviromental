@@ -28,7 +28,7 @@ const int   daylightOffset_sec = 0;
 
 //----------Convertidor I2C-------
 Adafruit_ADS1115 ads; //(0x48); // Direccion del convertidor 
-const float mul=0.0625/1000; //0.1875/1000; // Multiplicador para convertir a Voltios
+const float mul= 0.0625/1000; //0.1875/1000;// Multiplicador para convertir a Voltios
 
 //----------BME280----------------
 #define SEALEVELPRESSURE_HPA (1013.25) // Definir Una constante de presion
@@ -48,7 +48,7 @@ TinyGsmClient GsmClient(modem);
 //----------MicroSD--------------
 SPIClass sdCard(HSPI); // Crear Objeto SPI para la SD
 #define SD_CS 19 // Definir el Pin del micro que va a CS
-#define SDSPEED 20000000 // Velocidad del modulo SD
+#define SDSPEED 27000000 // Velocidad del modulo SD
 boolean SD_present = true;
 
 //----------WIFI-----------------
@@ -106,7 +106,6 @@ esp_reset_reason_t reason;
 //------------Error del equipo-----
 String error;
 
-
 //-----------variables para enviar--
 boolean ready_for_send = false;
 
@@ -155,6 +154,11 @@ void setup() {
     delay(1000);
     loadLogs();
   }
+  //------------Cargar configuracion---
+  loadConfiguration(configuracion);
+  ModeTemp=Mode;
+  printFile(configuracion);
+  
   //------------Convertidor I2C----
   ads.setGain(GAIN_TWO);
   ads.begin();
@@ -166,11 +170,6 @@ void setup() {
       Serial.println("Could not find a valid BME280 sensor, check wiring!");
       while (1);
   }
-  
-  //------------Cargar configuracion---
-  loadConfiguration(configuracion);
-  ModeTemp=Mode;
-  printFile(configuracion);
 
   //----------Encendido del equipo--
   reason=esp_reset_reason();
@@ -245,7 +244,7 @@ void loop() {
         noConnected();
       }break;
     }
-    delay(60000);
+    delay(TIME_TO_SLEEP*60*1000);
   }
   /*if (Mode!=0){
     rtc_gpio_set_level(RST,0);

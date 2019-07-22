@@ -102,7 +102,7 @@ void loadConfiguration(const char *filename) {
   strlcpy(AP.ssid, doc["ap"][0] | "9-COCO2NH4", sizeof(AP.ssid)); 
   strlcpy(AP.pass, doc["ap"][1] | "", sizeof(AP.pass)); 
   TIME_TO_SLEEP=doc["sleep"] | 1;
-  Mode=doc["mode"] | 0;
+  Mode=doc["mode"] | 3;
 
   file.close();
   delay(1000);
@@ -111,7 +111,7 @@ void loadConfiguration(const char *filename) {
 void saveConfiguration(const char *filename) {
 
   SD.remove(filename);
-
+  delay(100);
   File file = SD.open(filename, FILE_WRITE);
   if (!file) {
     Serial.println(F("Failed to create file"));
