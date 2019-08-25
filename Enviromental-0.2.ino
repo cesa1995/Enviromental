@@ -4,7 +4,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <PubSubClient.h>
-#include <TinyGsmClient.h>*/
+#include <TinyGsmClient.h>
 #include <Wire.h>
 #include <Adafruit_ADS1015.h>
 #include <Adafruit_Sensor.h>
@@ -35,7 +35,25 @@ const float mul= 0.0625/1000; //0.1875/1000;// Multiplicador para convertir a Vo
 Adafruit_BME280 bme; // Crear Objeto BME
 
 //----------datos----------------
-float Temperatura_copy, Humedad_copy, Presion_copy, Altitud_copy, CO_copy, CH4_copy, CO2_copy;
+float Temperatura_copy, Humedad_copy, Presion_copy, Altitud_copy;// CO_copy, CH4_copy;
+
+//--------variables finales CO2
+long iPPM_CO2 = 0;
+float voltage_CO2 = 0;
+float resistence_CO2 = 0;
+boolean toCalibrate_CO2=false;
+
+//--------variables finales NH4
+long iPPM_CH4 = 0;
+float voltage_CH4 = 0;
+float resistence_CH4 = 0;
+boolean toCalibrate_CH4=false;
+
+//--------variables finales CO
+long iPPM_CO = 0;
+float voltage_CO = 0;
+float resistence_CO = 0;
+boolean toCalibrate_CO=false;
 
 //-----------SIM800L--------------
 #include <HardwareSerial.h>
@@ -111,12 +129,14 @@ boolean ready_for_send = false;
 
 //------------archivos creados-----
 #include "tiempo.h"
+#include "sensoresMQ.h"
 #include "html.h"
 #include "SDfile.h"
 #include "links.h"
 #include "DATA.h"
 #include "mqtt.h"
 #include "Connections.h"
+
 //------------Task----------------
 TaskHandle_t Task1;
 TaskHandle_t Task2;
@@ -219,6 +239,21 @@ void Task1code( void * pvParameters ){
 void Task2code( void * pvParameters ){
   //------------configurar STA_AP-------
   for(;;){
+    if(toCalibrate_CO2){
+      calibrar_CO2();
+      saveConfiguration(configuracion);
+      toCalibrate_CO2=false; 
+    } 
+    if(toCalibrate_CH4){
+      calibrar_CH4();
+      saveConfiguration(configuracion);
+      toCalibrate_CH4=false; 
+    } 
+    if(toCalibrate_CO){
+      calibrar_CO();
+      saveConfiguration(configuracion);
+      toCalibrate_CO=false; 
+    }
     MakeData();
     ready_for_send = true;
     delay(10000);
@@ -227,7 +262,7 @@ void Task2code( void * pvParameters ){
 }
 
 void loop() {
-  if(ready_for_send==true){
+  if(ready_for_send && !toCalibrate_CO2){
     switch(Mode){
       //modo Wifi
       case 1:{

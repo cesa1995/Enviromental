@@ -131,6 +131,30 @@ void reboot(){
   ESP.restart();
 }
 
+void calibrar(){
+  int gas=server.arg("gas").toInt();
+  int ppm=server.arg("ppm").toInt();
+  switch(gas){
+    case 0:{
+      atmCO2=ppm;
+      toCalibrate_CO2=true;
+    } break;
+    case 1:{
+      atmCH4=ppm;
+      toCalibrate_CH4=true;
+    }break;
+    case 2:{
+      atmCO=ppm;
+      toCalibrate_CO=true;
+    }
+  }
+  if(gas==4){
+    server.send(200, "text/html", LoadPage(11));
+  }else{
+    server.send(200, "text/html", LoadPage(12));
+  }
+}
+
 void handle_NotFound(){
   server.send(404, "text/plain", "Not found");
 }

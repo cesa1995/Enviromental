@@ -14,7 +14,7 @@ String LoadPage(int type){
     html +=".header-button{ width: 2rem; height: 0.2rem; background: #000; position: absolute; transition: all 0.2s;}";
     html +=".header-button::before, .header-button::after{content: \"\"; width: 2rem; height: 0.2rem; background: #000; position: absolute; top: -0.6rem; transition: all 0.2s;}";
     html +=".header-button::after{top:0.6rem;}";
-    html +=".menu{background: none; width: 200px; height: 27rem; position: absolute; z-index: 9; top: -29rem; margin-left: 5px; display: flex; flex-direction: column; justify-content: space-around; text-align: center; padding-top: 2rem; transition: all 0.5s;}";
+    html +=".menu{background: none; width: 200px; height: 27rem; position: absolute; z-index: 9; top: -35rem; margin-left: 5px; display: flex; flex-direction: column; justify-content: space-around; text-align: center; padding-top: 2rem; transition: all 0.5s;}";
     html +="ul {list-style: none;}";
     html +="li{ margin: 0.5rem;}";
     html +="a{ width: 200px; border: 1px solid #000; text-decoration:none; color: #fff; padding: 5px; border-radius: 5px; display: block;}";
@@ -41,13 +41,16 @@ String LoadPage(int type){
     html+="form input[type=\"submit\"]:focus { -webkit-box-shadow:none; box-shadow:none; margin :0 auto;}\n";
     html+="a{ left: 50%; -webkit-transform: translateX(-50%); background-color: purple; transform: translateX(-50%); width: 300px; position: relative; display: block; text-decoration:none; color: white;";
     html+="margin-top: 4px; padding: 5px; border-radius: 4px;}\n";
-  }else if(type==6 || type==7 || type==8 || type==9 || type==10){
+  }else if(type==6 || type==7 || type==8 || type==9 || type==10 || type==11){
     html+="a{ left: 50%; -webkit-transform: translateX(-50%); transform: translateX(-50%); width: 300px; position: relative; display: block; text-decoration:none; color: white;";
     html+="background-color: purple; margin-top: 4px; padding: 5px; border-radius: 4px;}\n";
     }
   html+="a:hover{ background-color: black;}\n";
   html+="</style>\n";
   html+="<head><meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=0.7, user-scalable=no\">\n<meta http-equiv=\"X-UA-Compatible\" content=\"ie=edge\">\n";
+  if(type==12){
+    html+="<meta http-equiv=\"Refresh\" content=\"10; url=/\" />";  
+  }
   if(type==0){
     html+="<meta http-equiv=\"refresh\" content=\"30\">\n";
   }  
@@ -95,19 +98,36 @@ String LoadPage(int type){
         html +="<nav class=\"menu\"> \n <ul> \n";
         html +="<a class=\"conf\" href=\"apn\">APN del GSM</a> \n <a class=\"conf\" href=\"sta\">Wifi Estacion</a> \n <a class=\"conf\" href=\"ap\">Wifi Punto de Acceso</a> \n <a class=\"conf\" href=\"/reloj\">Reloj</a> \n <a class=\"conf\" href=\"/time\">Tiempo de Descanso</a>";
         html +="<a class=\"file\" href=\"/?download=/Data.txt\">Descargar Datos</a> \n <a class=\"file\" href=\"/log\">Logs</a> \n <a class=\"del\" href=\"/borrar?type=0\">Borrar Datos</a> \n <a class=\"del\" href=\"/borrar?type=1\">Borrar Configuracion</a> \n <a class=\"del\" href=\"/borrar?type=2\">Borrar Logs</a>";
-        html +="<a class=\"reboot\" href=\"reboot?Mode=1\">Reiniciar Modo Wifi-STA</a> \n <a class=\"reboot\" href=\"/reboot?Mode=2\">Reiniciar Modo GSM</a> \n <a class=\"reboot\" href=\"/reboot?Mode=3\">Riniciar modo sin conexion</a> \n </ul> \n </nav>";
+        html +="<a class=\"reboot\" href=\"reboot?Mode=1\">Reiniciar Modo Wifi-STA</a> \n <a class=\"reboot\" href=\"/reboot?Mode=2\">Reiniciar Modo GSM</a> \n <a class=\"reboot\" href=\"/reboot?Mode=3\">Riniciar modo sin conexion</a> \n <a class=\"reboot\" href=\"/calibrar?gas=4\">Calibrar Sensores</a> \n </ul> \n </nav>";
         html +="<div class=\"titulo\"> \n <h1>Configurar</h1> \n <p>Informacion del equipo.</p> \n </div>";
         html +="<div class=\"formulario\">\n";
         html +="<div class=\"links\">\n";
         html +="<div class=\"caja\"> \n <p><strong>TIEMPO</strong></p> \n <p>"+getTiempo()+"</p></div>";
         html +="<div class=\"caja\"><p><strong>ULTIMOS DATOS</strong></p> \n";
+        //BME
         html +="<p><strong>Temperatura</strong>=> "+String(Temperatura_copy)+" °C</p>";
         html +="<p><strong>Humedad</strong>=> "+String(Humedad_copy)+" %</p>";
         html +="<p><strong>Presion</strong>=> "+String(Presion_copy)+" hPa</p>";
-        html +="<p><strong>Altitud</strong>=> "+String(Altitud_copy)+" m</p>";
-        html +="<p><strong>CO</strong>=> "+String(CO_copy)+" V</p>";
-        html +="<p><strong>CH4</strong>=> "+String(CH4_copy)+" V</p>";
-        html +="<p><strong>CO2</strong>=> "+String(CO2_copy)+" V</p> \n </div>";
+        html +="<p><strong>Altitud</strong>=> "+String(Altitud_copy)+" m</p> </br> \n";
+        //CO
+        html +="<p><strong>CO</strong>=> "+String(voltage_CO,4)+" V</p>";
+        html +="<p><strong>CO</strong>=> "+String(resistence_CO,4)+" ohm</p>";
+        html +="<p><strong>CO</strong>=> "+String(iPPM_CO)+" PPM</p>";
+        html +="<p><strong>CO(PPM-Ro)</strong>=> "+String(atmCO)+" PPM</p>";
+        html +="<p><Strong>CO(Ro)</strong>=> "+String(RoCO)+" ohm</p> </br> \n";
+        //CH4        
+        html +="<p><strong>CH4</strong>=> "+String(voltage_CH4,4)+" V</p>";
+        html +="<p><strong>CH4</strong>=> "+String(resistence_CH4,4)+" ohm</p>";
+        html +="<p><strong>CH4</strong>=> "+String(iPPM_CH4)+" PPM</p>";
+        html +="<p><strong>CH4(PPM-Ro)</strong>=> "+String(atmCH4)+" PPM</p>";
+        html +="<p><Strong>CH4(Ro)</strong>=> "+String(RoCH4)+" ohm</p> </br>\n";
+        //CO2
+        html +="<p><strong>CO2</strong>=> "+String(voltage_CO2, 4)+" V</p>";
+        html +="<p><strong>CO2</strong>=> "+String(resistence_CO2, 4)+" ohm</p>";
+        html +="<p><strong>CO2</strong>=> "+String(iPPM_CO2)+" PPM</p>";
+        html +="<p><strong>CO2(PPM-Ro)</strong>=> "+String(atmCO2)+" PPM</p>";
+        html +="<p><Strong>CO2(Ro)</strong>=> "+String(RoCO2)+" ohm</p> \n </div>";
+        
         html +="<div class=\"caja\"> \n <p><strong>INTERVALO DE LECTURA</strong></p> \n <p>"+String(TIME_TO_SLEEP)+" minutos</p> \n </div> \n </div>";
         html +="<div class=\"links\"> \n <div class=\"caja\">\n";
         html +="<p><strong>GSM-SIM</strong></p>\n<p><strong>Apn:</strong> "+String(sim.apn)+"</p>\n<p><strong>Usuario:</strong> "+String(sim.user)+"</p> \n <p><strong>Contrase&ntilde;a:</strong> "+String(sim.pass)+"</p></div>";
@@ -186,6 +206,24 @@ String LoadPage(int type){
       case 10:{
         html+="<div class=\"formulario\"><a href=\"/\">Regresar</a><h1>No existe el archivo.</h1></div>\n";
       }break;
+      case 11:{
+        html+="<div class=\"formulario\">\n";
+        html+="<form action=\"calibrar\" method=\"POST\" accept-charset=\"utf-8\">\n";
+        html+="<h2>Calibrar Sensores</h2>\n";
+        html+="<p>Coloque el sensor en el ambiente conocido, seleccione el sensor a calibrar e ingrese ese valor en ppm y presione calibrar.</p>\n";
+        html+="<select name=\"gas\" required>\n";
+        html+="<option value=\"0\">Dioxido de Carbono (CO2)</option>\n";
+        html+="<option value=\"1\">Metano (NH4)</option>\n";
+        html+="<option value=\"2\">Monoxido de carbono (CO)</option>\n";
+        html+="</select>\n";
+        html+="<input type=\"number\" name=\"ppm\" placeholder=\"PPM del gas conocido\" required>\n";
+        html+="<input type=\"submit\" value=\"Calibrar\">\n";
+        html+="</form>\n";
+        html+="</div>\n";
+      }break;
+      case 12:{
+        html+="<div class=\"formulario\"><h1>Se esta calibrando el sensor espere...!</h1></div>\n";
+      }
         
     }
     html+="</body></html>";

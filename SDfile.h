@@ -100,7 +100,14 @@ void loadConfiguration(const char *filename) {
   strlcpy(STA.ssid, doc["sta"][0] | "", sizeof(STA.ssid)); 
   strlcpy(STA.pass, doc["sta"][1] | "", sizeof(STA.pass));
   strlcpy(AP.ssid, doc["ap"][0] | "9-COCO2NH4", sizeof(AP.ssid)); 
-  strlcpy(AP.pass, doc["ap"][1] | "", sizeof(AP.pass)); 
+  strlcpy(AP.pass, doc["ap"][1] | "12345678", sizeof(AP.pass)); 
+  
+  RoCO2=doc["RoCO2"] | 18496.15;
+  RoCH4=doc["RoCH4"] | 6000.0;
+  RoCO=doc["RoCO"] | 7000.0;
+  atmCO2=doc["atmCO2"] | 392.57;
+  atmCH4=doc["atmNH4"] | 10.0;
+  atmCO=doc["atmCO"] | 700.0;
   TIME_TO_SLEEP=doc["sleep"] | 1;
   Mode=doc["mode"] | 3;
 
@@ -132,10 +139,15 @@ void saveConfiguration(const char *filename) {
   ap.add(AP.ssid);
   ap.add(AP.pass);
 
+  doc["RoCO2"]=RoCO2;
+  doc["RoCH4"]=RoCH4;
+  doc["RoCO"]=RoCO;
+  doc["atmCO2"]=atmCO2;
+  doc["atmNH4"]=atmCH4;
+  doc["atmCO"]=atmCO;
   doc["sleep"]=TIME_TO_SLEEP;
-
   doc["mode"]=ModeTemp;
-
+  
   if (serializeJson(doc, file) == 0) {
     Serial.println(F("Failed to write to file"));
     saveLogs("No se pudo serializar el archivo de configuracion");

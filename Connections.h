@@ -64,6 +64,7 @@ boolean wifiSettings(){
   server.on("/time", Ptime);
   server.on("/borrar", borrar);
   server.on("/reboot", reboot);
+  server.on("/calibrar", calibrar);
   server.onNotFound(handle_NotFound);  
   server.begin();
   Serial.println("HTTP server started");
