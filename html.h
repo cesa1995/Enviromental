@@ -32,7 +32,7 @@ String LoadPage(int type){
     html +=".reboot{ background-color:  #148f77;}";
     html +="a:hover{ background-color: black;}";
     html +="@media screen and (max-width: 750px){ .formulario{ display:block; }}";
-  }else if(type==1 || type==2 || type==3 || type==4 || type==5){
+  }else if(type==1 || type==2 || type==3 || type==4 || type==5 || type==11){
     html+="form { left: 50%; -webkit-transform: translateX(-50%); transform: translateX(-50%); position: relative; width:300px;}\n";
     html+="form input, select ,textarea{ -webkit-appearance:none; -moz-appearance:none; appearance:none; color: #000000; width:100%; position:relative; padding:13px 10px 12px;"; 
     html+="margin:10px auto; border:none; -webkit-box-shadow:0 0 0 2px #cccccc; box-shadow:0 0 0 2px #cccccc; border-radius:5px;}\n";
@@ -41,7 +41,7 @@ String LoadPage(int type){
     html+="form input[type=\"submit\"]:focus { -webkit-box-shadow:none; box-shadow:none; margin :0 auto;}\n";
     html+="a{ left: 50%; -webkit-transform: translateX(-50%); background-color: purple; transform: translateX(-50%); width: 300px; position: relative; display: block; text-decoration:none; color: white;";
     html+="margin-top: 4px; padding: 5px; border-radius: 4px;}\n";
-  }else if(type==6 || type==7 || type==8 || type==9 || type==10 || type==11){
+  }else if(type==6 || type==7 || type==8 || type==9 || type==10 ){
     html+="a{ left: 50%; -webkit-transform: translateX(-50%); transform: translateX(-50%); width: 300px; position: relative; display: block; text-decoration:none; color: white;";
     html+="background-color: purple; margin-top: 4px; padding: 5px; border-radius: 4px;}\n";
     }
@@ -217,7 +217,7 @@ String LoadPage(int type){
         html+="<p>Coloque el sensor en el ambiente conocido, seleccione el sensor a calibrar e ingrese ese valor en ppm y presione calibrar.</p>\n";
         html+="<select name=\"gas\" required>\n";
         html+="<option value=\"0\">Dioxido de Carbono (CO2)</option>\n";
-        html+="<option value=\"1\">Metano (NH4)</option>\n";
+        html+="<option value=\"1\">Metano (CH4)</option>\n";
         html+="<option value=\"2\">Monoxido de carbono (CO)</option>\n";
         html+="</select>\n";
         html+="<input type=\"number\" name=\"ppm\" placeholder=\"PPM del gas conocido\" required>\n";
