@@ -103,11 +103,11 @@ void loadConfiguration(const char *filename) {
   strlcpy(AP.pass, doc["ap"][1] | "12345678", sizeof(AP.pass)); 
   
   RoCO2=doc["RoCO2"] | 18496.15;
-  RoCH4=doc["RoCH4"] | 6000.0;
-  RoCO=doc["RoCO"] | 7000.0;
+  RoCH4=doc["RoCH4"] | 6765.0;
+  RoCO=doc["RoCO"] | 320.0;
   atmCO2=doc["atmCO2"] | 392.57;
-  atmCH4=doc["atmNH4"] | 10.0;
-  atmCO=doc["atmCO"] | 700.0;
+  atmCH4=doc["atmNH4"] | 1845.0;
+  atmCO=doc["atmCO"] | 1.0;
   TIME_TO_SLEEP=doc["sleep"] | 1;
   Mode=doc["mode"] | 3;
 

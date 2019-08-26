@@ -77,7 +77,7 @@ float getRZero(int pin, float atm, float scaleFactor, float exponent) {
 }
 
 void calibrar_CO2(){
-  Serial.print("Calibrating...");
+  Serial.print("Calibrating...Dioxido de carbono");
   RoCO2=getRZero(2, atmCO2, scaleFactorCO2, exponentCO2);
   Serial.print("Ro=");
   Serial.print(RoCO2);
@@ -86,19 +86,19 @@ void calibrar_CO2(){
 }
 
 void calibrar_CH4(){
-  Serial.print("Calibrating...");
+  Serial.print("Calibrating...Metano");
   RoCH4=getRZero(1, atmCH4, scaleFactorCH4, exponentCH4);
   Serial.print("Ro=");
-  Serial.print(RoCO2);
+  Serial.print(RoCH4);
   Serial.println("ohm");
   delay(2000);
 }
 
 void calibrar_CO(){
-  Serial.print("Calibrating...");
+  Serial.print("Calibrating...Monoxido de carbono");
   RoCO=getRZero(0, atmCO, scaleFactorCO, exponentCO);
   Serial.print("Ro=");
-  Serial.print(RoCO2);
+  Serial.print(RoCO);
   Serial.println("ohm");
   delay(2000);
 }

@@ -103,27 +103,31 @@ String LoadPage(int type){
         html +="<div class=\"formulario\">\n";
         html +="<div class=\"links\">\n";
         html +="<div class=\"caja\"> \n <p><strong>TIEMPO</strong></p> \n <p>"+getTiempo()+"</p></div>";
-        html +="<div class=\"caja\"><p><strong>ULTIMOS DATOS</strong></p> \n";
+        html +="<div class=\"caja\"><p><strong>ULTIMOS DATOS</strong></p> </br> \n";
         //BME
+        html +="<p><strong>Sensor BME</strong></p>";
         html +="<p><strong>Temperatura</strong>=> "+String(Temperatura_copy)+" °C</p>";
         html +="<p><strong>Humedad</strong>=> "+String(Humedad_copy)+" %</p>";
         html +="<p><strong>Presion</strong>=> "+String(Presion_copy)+" hPa</p>";
         html +="<p><strong>Altitud</strong>=> "+String(Altitud_copy)+" m</p> </br> \n";
         //CO
+        html +="<p><strong>Sensor MQ-9</strong></p>";
         html +="<p><strong>CO</strong>=> "+String(voltage_CO,4)+" V</p>";
-        html +="<p><strong>CO</strong>=> "+String(resistence_CO,4)+" ohm</p>";
+        html +="<p><strong>CO</strong>=> "+String(resistence_CO,0)+" ohm</p>";
         html +="<p><strong>CO</strong>=> "+String(iPPM_CO)+" PPM</p>";
         html +="<p><strong>CO(PPM-Ro)</strong>=> "+String(atmCO)+" PPM</p>";
         html +="<p><Strong>CO(Ro)</strong>=> "+String(RoCO)+" ohm</p> </br> \n";
-        //CH4        
+        //CH4
+        html +="<p><strong>Sensor MQ-4</strong></p>";
         html +="<p><strong>CH4</strong>=> "+String(voltage_CH4,4)+" V</p>";
-        html +="<p><strong>CH4</strong>=> "+String(resistence_CH4,4)+" ohm</p>";
+        html +="<p><strong>CH4</strong>=> "+String(resistence_CH4,0)+" ohm</p>";
         html +="<p><strong>CH4</strong>=> "+String(iPPM_CH4)+" PPM</p>";
         html +="<p><strong>CH4(PPM-Ro)</strong>=> "+String(atmCH4)+" PPM</p>";
         html +="<p><Strong>CH4(Ro)</strong>=> "+String(RoCH4)+" ohm</p> </br>\n";
         //CO2
+        html +="<p><strong>Sensor MQ-135</strong></p>";
         html +="<p><strong>CO2</strong>=> "+String(voltage_CO2, 4)+" V</p>";
-        html +="<p><strong>CO2</strong>=> "+String(resistence_CO2, 4)+" ohm</p>";
+        html +="<p><strong>CO2</strong>=> "+String(resistence_CO2, 0)+" ohm</p>";
         html +="<p><strong>CO2</strong>=> "+String(iPPM_CO2)+" PPM</p>";
         html +="<p><strong>CO2(PPM-Ro)</strong>=> "+String(atmCO2)+" PPM</p>";
         html +="<p><Strong>CO2(Ro)</strong>=> "+String(RoCO2)+" ohm</p> \n </div>";
